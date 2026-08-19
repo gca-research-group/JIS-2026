@@ -48,26 +48,6 @@ inside-proof-of-concept/metrics/all_metrics.csv
 
 The conventional configuration executes the same business workflow without the Launcher and without CHERI compartmentalisation. The Integration Process communicates directly with the same three types of Digital Services.
 
-```text
-Integration Process
-       |
-       | Read_act
-       v
-Health Registry Service
-
-Integration Process
-       |
-       | Write_act
-       v
-Hospital Service
-
-Integration Process
-       |
-       | Write_act
-       v
-Messaging Service
-```
-
 There is **no Launcher in the conventional configuration**. This configuration produces the baseline metrics stored in:
 
 ```text
