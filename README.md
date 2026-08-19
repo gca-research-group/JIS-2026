@@ -38,40 +38,6 @@ proccontrol -m cheric18n -s enable <executable>
 
 - mediates `read()` and `write()` operations between the Integration Process and the Digital Services.
 
-The trusted data flow is:
-
-```text
-Integration Process
-       |
-       | Read_act
-       v
-    Launcher
-       |
-       | request()
-       v
-Health Registry Service
-
-Integration Process
-       |
-       | Write_act
-       v
-    Launcher
-       |
-       | post()
-       v
-Hospital Service
-
-Integration Process
-       |
-       | Write_act
-       v
-    Launcher
-       |
-       | post()
-       v
-Messaging Service
-```
-
 This configuration produces the metrics stored in:
 
 ```text
