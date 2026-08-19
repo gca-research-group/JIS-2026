@@ -7,12 +7,6 @@ This project implements a healthcare scenario:
 3. `Write_act` updates the Hospital Service record.
 4. A second `Write_act` sends the availability notification to the Messaging Service.
 
-Canonical installation path on the Morello Board:
-
-```sh
-/home/regis/JIS-2026-main/
-```
-
 ## Inside (CHERI compartment)
 
 Run each service in a separate terminal:
