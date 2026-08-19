@@ -61,14 +61,6 @@ inside-proof-of-concept/metrics/all_metrics.csv
 outside-proof-of-concept/metrics/all_metrics.csv
 ```
 
-Validate a campaign:
-
-```sh
-cd /home/regis/JIS-2026-main
-python3 evaluation/validate_metrics.py inside-proof-of-concept/metrics/all_metrics.csv --expected-runs 30
-python3 evaluation/validate_metrics.py outside-proof-of-concept/metrics/all_metrics.csv --expected-runs 30
-```
-
 Run the statistical analysis:
 
 ```sh
