@@ -286,101 +286,13 @@ clang-morello -o integration_process integration_process.c -lssl -lcrypto
 
 The conventional executable is run directly, without `proccontrol -m cheric18n -s enable` and without the Launcher.
 
-## Step B4 — Execute one validation run
+## Step B4 — Execute 
 
 ```bash
 cd /home/regis/JIS-2026-main/outside-proof-of-concept/sources
 
-METRICS_FILE=/home/regis/JIS-2026-main/outside-proof-of-concept/metrics/all_metrics.csv \
-PROGRAM_ID=2 \
-PATIENT_ID=P001 \
 ./integration_process
 ```
-
-Check the return code:
-
-```bash
-echo $?
-```
-
-Expected value:
-
-```text
-0
-```
-
-## Step B5 — Validate the test run
-
-```bash
-cd /home/regis/JIS-2026-main
-python3 evaluation/validate_metrics.py \
-  outside-proof-of-concept/metrics/all_metrics.csv \
-  --expected-runs 1
-```
-
-For a new clean validation run, the expected result is:
-
-```text
-Complete successful runs: 1
-Incomplete/failed runs: 0
-Metric campaign is complete and internally consistent.
-```
-
-## Step B6 — Prepare a new 30-run campaign
-
-Preserve an existing collected CSV before resetting it:
-
-```bash
-cd /home/regis/JIS-2026-main
-cp outside-proof-of-concept/metrics/all_metrics.csv \
-   outside-proof-of-concept/metrics/all_metrics.backup.csv
-```
-
-Reset the active CSV:
-
-```bash
-printf 'ts,run_id,component,operation,metric,value_ms,program_id,service_id\n' \
-> outside-proof-of-concept/metrics/all_metrics.csv
-```
-
-## Step B7 — Execute 30 repetitions
-
-```bash
-cd /home/regis/JIS-2026-main/outside-proof-of-concept/sources
-
-for i in $(seq 1 30); do
-    echo "=== Execution $i/30 ==="
-
-    METRICS_FILE=/home/regis/JIS-2026-main/outside-proof-of-concept/metrics/all_metrics.csv \
-    PROGRAM_ID=2 \
-    PATIENT_ID=P001 \
-    ./integration_process
-
-    if [ $? -ne 0 ]; then
-        echo "Execution $i failed. Campaign stopped."
-        exit 1
-    fi
-done
-```
-
-## Step B8 — Validate the conventional campaign
-
-```bash
-cd /home/regis/JIS-2026-main
-python3 evaluation/validate_metrics.py \
-  outside-proof-of-concept/metrics/all_metrics.csv \
-  --expected-runs 30
-```
-
-Expected result:
-
-```text
-Complete successful runs: 30
-Incomplete/failed runs: 0
-Metric campaign is complete and internally consistent.
-```
-
----
 
 # Part C — Statistical analysis
 
@@ -390,32 +302,14 @@ The repository contains the analysis script used to compare the trusted and conv
 evaluation/script.py
 ```
 
-Unlike the earlier project organisation, it reads the canonical campaign files directly from:
+The campaign files are read directly from:
 
 ```text
 inside-proof-of-concept/metrics/all_metrics.csv
 outside-proof-of-concept/metrics/all_metrics.csv
 ```
 
-No manual copy to `evaluation/inside.csv` or `evaluation/outside.csv` is required.
-
-## Step C1 — Validate both datasets
-
-Before the statistical analysis, confirm that both campaigns contain exactly 30 complete runs:
-
-```bash
-cd /home/regis/JIS-2026-main
-
-python3 evaluation/validate_metrics.py \
-  inside-proof-of-concept/metrics/all_metrics.csv \
-  --expected-runs 30
-
-python3 evaluation/validate_metrics.py \
-  outside-proof-of-concept/metrics/all_metrics.csv \
-  --expected-runs 30
-```
-
-## Step C2 — Run the analysis script
+## Step C1 — Run the analysis script
 
 ```bash
 cd /home/regis/JIS-2026-main
@@ -427,7 +321,7 @@ The script produces:
 - console output; and
 - `evaluation/analysis_results.log`.
 
-## Step C3 — What the script computes
+## Step C2 — What the script computes
 
 ### Cross-environment comparison
 
@@ -546,18 +440,3 @@ start_total_ms
 ```
 
 ---
-
-# Experimental consistency
-
-A valid repetition must use one unique `run_id` and contain the complete business flow:
-
-```text
-1 x Read_act  -> health-registry-service
-1 x Write_act -> hospital-service
-1 x Write_act -> messaging-service
-1 x Execution -> execute_total_ms
-```
-
-It must also contain the corresponding Digital Service request/post totals and must not contain `execute_failed_ms`.
-
-Use `evaluation/validate_metrics.py` before performing any statistical analysis. This prevents incomplete executions from being mixed with successful runs.
