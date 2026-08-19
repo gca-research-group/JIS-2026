@@ -1,11 +1,11 @@
 # Reproducing the proof-of-concept on the ARM Morello Board
 
-This repository contains two reproducible proof-of-concept configurations of the same healthcare integration process implemented with the iDevS API.
+This repository contains two reproducible configurations of the same healthcare integration proof of concept.
 
 - **Trusted environment (`inside`)**: the Integration Process is executed through the Launcher inside a CHERI-based compartment on the ARM Morello Board.
 - **Conventional environment (`outside`)**: the same Integration Process is executed outside CHERI-based compartments and communicates directly with the Digital Services, providing the conventional baseline.
 
-The proof of concept instantiates the iDevS API in an inter-organisational healthcare scenario involving primary healthcare services managed by FUMSSAR and a hospital managed by a different organisation. The workflow integrates three Digital Services:
+The proof of concept implements an inter-organisational healthcare scenario involving primary healthcare services and a hospital managed by a different organisation. The workflow integrates three Digital Services:
 
 - **Health Registry Service**: maintains patient data recorded by primary healthcare units (UBSs).
 - **Hospital Service**: maintains the patient record used by the hospital.
