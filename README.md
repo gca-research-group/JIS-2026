@@ -40,12 +40,6 @@ cd /home/regis/JIS-2026-main/inside-proof-of-concept/launcher
 python3 command-line-interface.py
 ```
 
-The registered Integration Process is `program_id=2`. The interactive menu uses patient `P001`. The Click command also supports an explicit patient:
-
-```sh
-python3 command-line-interface.py execute 2 --patient-id P001
-```
-
 ## Outside (conventional baseline)
 
 Start the three services from `outside-proof-of-concept` on the same ports, after stopping the inside services. Compile and execute:
