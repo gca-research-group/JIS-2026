@@ -1,6 +1,6 @@
 # iDevS — JIS 2026 FUMSSAR proof of concept
 
-This project implements the healthcare scenario used in the JIS extended article:
+This project implements a healthcare scenario:
 
 1. The Hospital Service requests patient `P001` (or another `PATIENT_ID`) as the business-flow input.
 2. `Read_act` retrieves that patient from the Health Registry Service.
