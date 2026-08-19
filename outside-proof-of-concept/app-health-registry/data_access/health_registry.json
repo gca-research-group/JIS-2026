@@ -1,0 +1,37 @@
+{
+  "Patients": [
+    {
+      "patientId": "P001",
+      "fullName": "Patient 001",
+      "birthDate": "1984-03-12",
+      "nationalHealthId": "CNS-000000000000001",
+      "sourceUnit": "UBS Centro - FUMSSAR",
+      "referralId": "REF-2026-0001",
+      "hospitalId": "HOSP-SR-001",
+      "diagnosis": "Clinical condition requiring hospital assessment",
+      "allergies": "None reported",
+      "medications": "Medication information recorded at primary care",
+      "notes": "Patient referred from primary healthcare to the hospital."
+    },
+    {
+      "patientId": "P002",
+      "fullName": "Patient 002",
+      "birthDate": "1977-11-06",
+      "nationalHealthId": "CNS-000000000000002",
+      "sourceUnit": "UBS Cruzeiro - FUMSSAR",
+      "referralId": "REF-2026-0002",
+      "hospitalId": "HOSP-SR-001",
+      "diagnosis": "Clinical follow-up requested by hospital",
+      "allergies": "Recorded in primary care system",
+      "medications": "Medication list available in registry",
+      "notes": "Synthetic proof-of-concept record; no real patient data."
+    }
+  ],
+  "AuditLog": [
+    {
+      "id": 1,
+      "event": "Synthetic FUMSSAR proof-of-concept registry initialised",
+      "timestamp": "2026-08-18 00:00:00"
+    }
+  ]
+}

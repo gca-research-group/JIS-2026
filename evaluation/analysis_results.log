@@ -1,0 +1,139 @@
+Analysis started at: 2026-08-18T22:26:50
+Inside CSV: C:\Users\Home\Desktop\JIS-2026\JIS-2026-main\inside-proof-of-concept\metrics\all_metrics.csv
+Outside CSV: C:\Users\Home\Desktop\JIS-2026\JIS-2026-main\outside-proof-of-concept\metrics\all_metrics.csv
+Log file: C:\Users\Home\Desktop\JIS-2026\JIS-2026-main\evaluation\analysis_results.log
+
+Trusted: 30 complete successful runs; 0 incomplete/failed run IDs excluded
+Conventional: 30 complete successful runs; 0 incomplete/failed run IDs excluded
+=== Main comparison: trusted vs conventional ===
+
+Metric: Read_act (read_act_total_ms)
+Trusted samples: 30
+Conventional samples: 30
+Trusted mean ± std: 58.39 ± 3.42
+Conventional mean ± std: 26.19 ± 2.17
+Overhead: 122.9%
+Shapiro trusted: <0.001
+Shapiro conventional: <0.001
+Mann–Whitney raw p-value: <0.001
+Cliff's Delta: 1.000
+
+Metric: Write_act Hospital Service (write_act_total_ms)
+Trusted samples: 30
+Conventional samples: 30
+Trusted mean ± std: 61.40 ± 0.43
+Conventional mean ± std: 38.35 ± 0.33
+Overhead: 60.1%
+Shapiro trusted: 0.350100
+Shapiro conventional: 0.595071
+Mann–Whitney raw p-value: <0.001
+Cliff's Delta: 1.000
+
+Metric: Write_act Messaging Service (write_act_total_ms)
+Trusted samples: 30
+Conventional samples: 30
+Trusted mean ± std: 42.30 ± 0.47
+Conventional mean ± std: 19.26 ± 0.11
+Overhead: 119.6%
+Shapiro trusted: <0.001
+Shapiro conventional: 0.107587
+Mann–Whitney raw p-value: <0.001
+Cliff's Delta: 1.000
+
+Metric: Execution (execute_total_ms)
+Trusted samples: 30
+Conventional samples: 30
+Trusted mean ± std: 162.33 ± 3.62
+Conventional mean ± std: 84.01 ± 2.25
+Overhead: 93.2%
+Shapiro trusted: <0.001
+Shapiro conventional: <0.001
+Mann–Whitney raw p-value: <0.001
+Cliff's Delta: 1.000
+Holm-adjusted p-value for Read_act: <0.001
+Holm-adjusted p-value for Write_act Hospital Service: <0.001
+Holm-adjusted p-value for Write_act Messaging Service: <0.001
+Holm-adjusted p-value for Execution: <0.001
+
+=== Robustness analysis after IQR filtering ===
+
+Metric: Read_act
+Trusted mean ± std without outliers: 57.38 ± 0.29
+Conventional mean ± std without outliers: 25.73 ± 0.08
+Trusted outliers removed: 4
+Conventional outliers removed: 4
+
+Metric: Write_act Hospital Service
+Trusted mean ± std without outliers: 61.40 ± 0.43
+Conventional mean ± std without outliers: 38.35 ± 0.33
+Trusted outliers removed: 0
+Conventional outliers removed: 0
+
+Metric: Write_act Messaging Service
+Trusted mean ± std without outliers: 42.18 ± 0.15
+Conventional mean ± std without outliers: 19.26 ± 0.08
+Trusted outliers removed: 2
+Conventional outliers removed: 2
+
+Metric: Execution
+Trusted mean ± std without outliers: 161.27 ± 0.69
+Conventional mean ± std without outliers: 83.60 ± 0.45
+Trusted outliers removed: 3
+Conventional outliers removed: 1
+Trusted internal-cost analysis: 30 complete successful runs; 0 incomplete/failed run IDs excluded
+
+=== Internal cost of Read_act in the trusted environment ===
+Service lookup: mean=0.012104 ms, contribution=0.021%
+Certificate retrieval: mean=0.195670 ms, contribution=0.335%
+Public-key retrieval: mean=0.097539 ms, contribution=0.167%
+Remote request forwarding: mean=25.374471 ms, contribution=43.458%
+Launcher read mediation: mean=26.732342 ms, contribution=45.783%
+Service certificate verification: mean=0.005133 ms, contribution=0.009%
+Service data retrieval: mean=4.305421 ms, contribution=7.374%
+Service-side encryption: mean=0.004675 ms, contribution=0.008%
+Local decryption: mean=0.000620 ms, contribution=0.001%
+Read_act total mean: 58.388905 ms
+
+=== Internal cost of Write_act in the trusted environment ===
+
+Write_act to Hospital Service:
+Service public-key retrieval: mean=0.000238 ms, contribution=0.000%
+Local encryption: mean=0.000427 ms, contribution=0.001%
+Service lookup: mean=0.002236 ms, contribution=0.004%
+Certificate retrieval: mean=0.131020 ms, contribution=0.213%
+Remote post forwarding: mean=39.993921 ms, contribution=65.139%
+Launcher write mediation: mean=40.787284 ms, contribution=66.431%
+Service certificate verification: mean=0.005324 ms, contribution=0.009%
+Service-side decryption: mean=0.004244 ms, contribution=0.007%
+Service data persistence: mean=19.514798 ms, contribution=31.784%
+Service post handling: mean=20.171897 ms, contribution=32.854%
+Write_act total mean: 61.398219 ms
+
+Write_act to Messaging Service:
+Service public-key retrieval: mean=0.000123 ms, contribution=0.000%
+Local encryption: mean=0.000817 ms, contribution=0.002%
+Service lookup: mean=0.002287 ms, contribution=0.005%
+Certificate retrieval: mean=0.131606 ms, contribution=0.311%
+Remote post forwarding: mean=20.920336 ms, contribution=49.463%
+Launcher write mediation: mean=21.696543 ms, contribution=51.298%
+Service certificate verification: mean=0.005309 ms, contribution=0.013%
+Service-side decryption: mean=0.004361 ms, contribution=0.010%
+Service data persistence: mean=0.556317 ms, contribution=1.315%
+Service post handling: mean=1.137061 ms, contribution=2.688%
+Write_act total mean: 42.295176 ms
+
+=== Internal cost of Launcher.start() in the trusted environment ===
+Source-code retrieval: mean=0.029919 ms
+Compilation: no data
+Compartment creation: mean=0.002003 ms
+Deployment: mean=0.000836 ms
+Integrated-services retrieval: mean=0.003632 ms
+Integrated-services environment validation: mean=57.613509 ms
+Key exchange: mean=0.004701 ms
+Attestable-document generation: mean=0.197660 ms
+Certificate generation: mean=0.108447 ms
+Certificate signing: mean=0.000835 ms
+Program execution: mean=186.814196 ms
+Launcher.start(): mean=246.691752 ms
+
+Analysis finished at: 2026-08-18T22:26:50
