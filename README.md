@@ -1,6 +1,6 @@
-# Reproducing the JIS proof-of-concept on the ARM Morello Board
+# Reproducing the proof-of-concept on the ARM Morello Board
 
-This repository contains two reproducible proof-of-concept configurations of the same healthcare integration process presented in the JIS paper **“Designing Integration Processes for Runtime Data Protection: A Developer-Facing API”**.
+This repository contains two reproducible proof-of-concept configurations of the same healthcare integration process implemented with the iDevS API.
 
 - **Trusted environment (`inside`)**: the Integration Process is executed through the Launcher inside a CHERI-based compartment on the ARM Morello Board.
 - **Conventional environment (`outside`)**: the same Integration Process is executed outside CHERI-based compartments and communicates directly with the Digital Services, providing the conventional baseline.
@@ -53,7 +53,7 @@ This README explains how to execute both configurations, validate the 30-run exp
 ## Repository layout
 
 ```text
-JIS-2026-main/
+<repository-root>/
 ├── inside-proof-of-concept/
 │   ├── app-health-registry/
 │   ├── app-hospital/
@@ -322,7 +322,7 @@ The interactive menu provides:
 6. Exit
 ```
 
-The repository already contains the JIS Integration Process registered as `program_id=2`, so a new upload is not required for a normal reproduction.
+The repository already contains the Integration Process registered as `program_id=2`, so a new upload is not required for a normal reproduction.
 
 ## Step A5 — List the registered source file
 
@@ -748,7 +748,7 @@ evaluation/analysis_results.log
 
 ---
 
-# Main metrics collected for the JIS proof-of-concept
+# Main metrics collected by the proof-of-concept
 
 ## Cross-environment metrics
 
