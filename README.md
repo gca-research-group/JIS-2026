@@ -40,12 +40,6 @@ Hospital request: patientId=P001
       Messaging Service
 ```
 
-The canonical installation path used by the project on the Morello Board is:
-
-```text
-/home/regis/JIS-2026-main/
-```
-
 This README explains how to execute both configurations, validate the 30-run experimental campaigns, and reproduce the statistical analysis.
 
 ---
