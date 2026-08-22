@@ -273,5 +273,4 @@ The script reports:
 inside-proof-of-concept/metrics/all_metrics.csv
 outside-proof-of-concept/metrics/all_metrics.csv
 evaluation/analysis_results.log
-evaluation/system_info.txt
 ```
