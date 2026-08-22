@@ -36,12 +36,6 @@ cd /home/regis/JIS-2026-main
 python3 -m pip install -r requirements.txt
 ```
 
-Before collecting a campaign, record the execution environment:
-
-```sh
-python3 evaluation/collect_system_info.py
-```
-
 # A. Trusted configuration
 
 The trusted and conventional services use the same local ports. Do not run both configurations at the same time.
