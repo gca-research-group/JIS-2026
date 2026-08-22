@@ -42,16 +42,6 @@ Before collecting a campaign, record the execution environment:
 python3 evaluation/collect_system_info.py
 ```
 
-## Preserved previous campaign
-
-The measurements that were bundled with the original project are preserved unchanged under:
-
-```text
-reference-results/20260819-original-campaign/
-```
-
-The active `all_metrics.csv` files are reset in this adjusted package so a new campaign can be collected without mixing old and new samples.
-
 # A. Trusted configuration
 
 The trusted and conventional services use the same local ports. Do not run both configurations at the same time.
