@@ -57,6 +57,7 @@
 #              :
 ## 
 
+import sys
 import click
 import requests
 import urllib3
@@ -188,6 +189,33 @@ def execute(program_id, patient_id):
     execute_and_notify(program_id, patient_id)
 
 
+@cli.command()
+@click.argument('program_id', type=int)
+@click.option('--runs', default=30, show_default=True, type=click.IntRange(min=1), help='Number of complete runs to collect.')
+@click.option('--patient-id', default='P001', show_default=True, help='Patient requested by the Hospital Service.')
+def campaign(program_id, runs, patient_id):
+    """Execute a complete trusted campaign through the Launcher."""
+    click.echo(f"Starting trusted campaign: program={program_id}, patient={patient_id}, runs={runs}")
+    for index in range(1, runs + 1):
+        response = requests.post(
+            f"{SERVER_URL}/execute/{program_id}",
+            json={'patientId': patient_id},
+            verify=VERIFY_SSL,
+            timeout=120,
+        )
+        try:
+            body = response.json()
+        except Exception:
+            body = {}
+        if response.status_code != 200 or body.get('returncode') not in (0, None):
+            run_id = body.get('run_id', '')
+            click.echo(f"Run {index}/{runs} failed. Run ID: {run_id}")
+            click.echo(body.get('error', body.get('error_output', response.text)))
+            raise click.ClickException('Campaign stopped because a run failed. Reset the campaign before collecting the final dataset.')
+        click.echo(f"Run {index:02d}/{runs}: {body.get('run_id', '')}")
+    click.echo('Trusted campaign completed successfully.')
+
+
 def get_valid_input(prompt, validation_func):
     """Get valid input from the user."""
     while True:
@@ -207,7 +235,8 @@ def run_menu():
         click.echo("| 3. Delete a program   |")
         click.echo("| 4. Compile a program  |")
         click.echo("| 5. Execute a program  |")
-        click.echo("| 6. Exit               |")
+        click.echo("| 6. Run 30-run campaign|")
+        click.echo("| 7. Exit               |")
         click.echo("-------------------------")
         choice = input("Choose an option: ")
 
@@ -229,11 +258,19 @@ def run_menu():
             program_id = get_valid_input("Enter the ID of the program to execute: ", int)
             execute([str(program_id)], standalone_mode=False)
         elif choice == '6':
+            program_id = get_valid_input("Enter the ID of the program: ", int)
+            campaign([str(program_id)], standalone_mode=False)
+        elif choice == '7':
             click.echo("Exiting...")
             break
         else:
             click.echo("Invalid option. Please try again.")
 
 if __name__ == '__main__':
-    run_menu()
+    # With arguments, expose the Click commands used by the reproducible
+    # campaign protocol. Without arguments, keep the original interactive menu.
+    if len(sys.argv) > 1:
+        cli()
+    else:
+        run_menu()
 

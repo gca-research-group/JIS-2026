@@ -1,0 +1,7 @@
+flask
+flask-talisman
+requests
+click
+pandas
+numpy
+scipy

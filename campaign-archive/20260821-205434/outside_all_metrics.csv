@@ -1,0 +1,2 @@
+ts,run_id,component,operation,metric,value_ms,program_id,service_id
+1787360057022,1787360057-717985-25794,integration_process,execute,execute_failed_ms,21.242628,2,

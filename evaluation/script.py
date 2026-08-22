@@ -6,6 +6,8 @@ import pandas as pd
 import numpy as np
 from scipy.stats import shapiro, mannwhitneyu
 
+from metric_schema import CORE_FLOW, TRUSTED_INTERNAL, TRUSTED_FORBIDDEN_METRICS
+
 
 class TeeLogger:
     def __init__(self, *streams):
@@ -26,18 +28,12 @@ def load_csv(path: str) -> pd.DataFrame:
 
 
 def complete_successful_run_ids(df: pd.DataFrame) -> set[str]:
-    """Return run IDs that contain exactly one complete successful business flow."""
-    required = [
-        ("integration_process", "read", "read_act_total_ms", "health-registry-service"),
-        ("integration_process", "write", "write_act_total_ms", "hospital-service"),
-        ("integration_process", "write", "write_act_total_ms", "messaging-service"),
-        ("integration_process", "execute", "execute_total_ms", None),
-        ("digital_service", "request", "request_total_ms", "health-registry-service"),
-        ("digital_service", "post", "post_total_ms", "hospital-service"),
-        ("digital_service", "post", "post_total_ms", "messaging-service"),
-    ]
+    """Return run IDs that contain one complete, uncontaminated workflow."""
     valid: set[str] = set()
-    for run_id, rows in df[df["run_id"].notna() & (df["run_id"].astype(str) != "")].groupby("run_id"):
+    grouped = df[df["run_id"].notna() & (df["run_id"].astype(str) != "")].groupby("run_id")
+    for run_id, rows in grouped:
+        trusted = bool((rows["component"] == "launcher").any())
+        required = list(CORE_FLOW) + (list(TRUSTED_INTERNAL) if trusted else [])
         ok = True
         for component, operation, metric, service_id in required:
             selected = rows[
@@ -45,12 +41,20 @@ def complete_successful_run_ids(df: pd.DataFrame) -> set[str]:
                 & (rows["operation"] == operation)
                 & (rows["metric"] == metric)
             ]
-            if service_id is not None:
+            if service_id:
                 selected = selected[selected["service_id"] == service_id]
+            else:
+                selected = selected[selected["service_id"].fillna("") == ""]
             if len(selected) != 1:
                 ok = False
                 break
-        if ok and not (rows["metric"] == "execute_failed_ms").any():
+        if ok:
+            metrics = set(rows["metric"].astype(str))
+            if "execute_failed_ms" in metrics:
+                ok = False
+            if trusted and metrics.intersection(TRUSTED_FORBIDDEN_METRICS):
+                ok = False
+        if ok:
             valid.add(str(run_id))
     return valid
 
@@ -119,7 +123,7 @@ def iqr_filter(x: np.ndarray) -> np.ndarray:
     return x[(x >= lower) & (x <= upper)]
 
 
-def contribution(operation_mean: float, total_mean: float) -> float:
+def relative_time(operation_mean: float, total_mean: float) -> float:
     if total_mean == 0 or np.isnan(total_mean):
         return float("nan")
     return 100.0 * operation_mean / total_mean
@@ -222,8 +226,8 @@ def print_internal_metric(
     if total_mean is None:
         print(f"{label}: mean={m:.6f} ms")
     else:
-        c = contribution(m, total_mean)
-        print(f"{label}: mean={m:.6f} ms, contribution={c:.3f}%")
+        c = relative_time(m, total_mean)
+        print(f"{label}: mean={m:.6f} ms, relative_time={c:.3f}%")
 
 
 def analyse_trusted_internal_cost(inside_csv: str) -> None:
@@ -236,8 +240,9 @@ def analyse_trusted_internal_cost(inside_csv: str) -> None:
     print_internal_metric(inside, "lookupService_ms", "Service lookup", read_total_mean, component="launcher", operation="read", service_id="health-registry-service")
     print_internal_metric(inside, "getCertificate_ms", "Certificate retrieval", read_total_mean, component="launcher", operation="read", service_id="health-registry-service")
     print_internal_metric(inside, "getProgramPublicKey_ms", "Public-key retrieval", read_total_mean, component="launcher", operation="read", service_id="health-registry-service")
-    print_internal_metric(inside, "request_ms", "Remote request forwarding", read_total_mean, component="launcher", operation="read", service_id="health-registry-service")
+    print_internal_metric(inside, "request_ms", "Launcher request/response interval", read_total_mean, component="launcher", operation="read", service_id="health-registry-service")
     print_internal_metric(inside, "launcher_read_total_ms", "Launcher read mediation", read_total_mean, component="launcher", operation="read", service_id="health-registry-service")
+    print_internal_metric(inside, "request_total_ms", "DigitalService.request()", read_total_mean, component="digital_service", operation="request", service_id="health-registry-service")
     print_internal_metric(inside, "verifyCertificate_ms", "Service certificate verification", read_total_mean, component="digital_service", operation="request", service_id="health-registry-service")
     print_internal_metric(inside, "retrieveLocalData_ms", "Service data retrieval", read_total_mean, component="digital_service", operation="request", service_id="health-registry-service")
     print_internal_metric(inside, "encrypt_ms", "Service-side encryption", read_total_mean, component="digital_service", operation="request", service_id="health-registry-service")
@@ -253,7 +258,7 @@ def analyse_trusted_internal_cost(inside_csv: str) -> None:
         print_internal_metric(inside, "encrypt_ms", "Local encryption", write_total_mean, component="integration_process", operation="write", service_id=service_id)
         print_internal_metric(inside, "lookupService_ms", "Service lookup", write_total_mean, component="launcher", operation="write", service_id=service_id)
         print_internal_metric(inside, "getCertificate_ms", "Certificate retrieval", write_total_mean, component="launcher", operation="write", service_id=service_id)
-        print_internal_metric(inside, "post_ms", "Remote post forwarding", write_total_mean, component="launcher", operation="write", service_id=service_id)
+        print_internal_metric(inside, "post_ms", "Launcher post/response interval", write_total_mean, component="launcher", operation="write", service_id=service_id)
         print_internal_metric(inside, "launcher_write_total_ms", "Launcher write mediation", write_total_mean, component="launcher", operation="write", service_id=service_id)
         print_internal_metric(inside, "verifyCertificate_ms", "Service certificate verification", write_total_mean, component="digital_service", operation="post", service_id=service_id)
         print_internal_metric(inside, "decrypt_ms", "Service-side decryption", write_total_mean, component="digital_service", operation="post", service_id=service_id)
@@ -263,11 +268,9 @@ def analyse_trusted_internal_cost(inside_csv: str) -> None:
 
     start_ops = [
         ("retrieveProgram_ms", "Source-code retrieval"),
-        ("compile_ms", "Compilation"),
         ("createCompartment_ms", "Compartment creation"),
         ("deploy_ms", "Deployment"),
         ("getIntegratedServices_ms", "Integrated-services retrieval"),
-        ("validateServices_ms", "Integrated-services environment validation"),
         ("exchangeKeys_ms", "Key exchange"),
         ("generateAttestableDoc_ms", "Attestable-document generation"),
         ("generateCertificate_ms", "Certificate generation"),
@@ -277,8 +280,36 @@ def analyse_trusted_internal_cost(inside_csv: str) -> None:
     ]
 
     print("\n=== Internal cost of Launcher.start() in the trusted environment ===")
+    compile_values = extract_metric(inside, "compile_ms", component="launcher", operation="start")
+    if len(compile_values) == 0:
+        print("Compilation: not part of the repeated campaign; the executable was precompiled")
+    else:
+        print_internal_metric(inside, "compile_ms", "Compilation", component="launcher", operation="start")
     for metric, label in start_ops:
         print_internal_metric(inside, metric, label, component="launcher", operation="start")
+
+    print("\n=== Experimental control outside Launcher.start() ===")
+    print_internal_metric(inside, "validateServices_ms", "Service-environment validation", component="launcher", operation="experimental_control")
+
+    start_total = extract_metric(inside, "start_total_ms", component="launcher", operation="start")
+    selected_metrics = [m for m, _ in start_ops if m != "start_total_ms"]
+    selected_sum = 0.0
+    all_present = True
+    for metric in selected_metrics:
+        vals = extract_metric(inside, metric, component="launcher", operation="start")
+        if len(vals) == 0:
+            all_present = False
+            break
+        selected_sum += float(np.mean(vals))
+    if len(start_total) and all_present:
+        total_mean = float(np.mean(start_total))
+        print(f"Selected measured start intervals: mean sum={selected_sum:.6f} ms")
+        print(f"Uninstrumented Launcher.start() residual: mean={total_mean - selected_sum:.6f} ms")
+
+    run_values = extract_metric(inside, "run_ms", component="launcher", operation="start")
+    exec_values = extract_metric(inside, "execute_total_ms", component="integration_process", operation="execute")
+    if len(run_values) and len(exec_values) and len(run_values) == len(exec_values):
+        print(f"Launcher run envelope minus IntegrationProcess Execution: mean={float(np.mean(run_values) - np.mean(exec_values)):.6f} ms")
 
 
 if __name__ == "__main__":

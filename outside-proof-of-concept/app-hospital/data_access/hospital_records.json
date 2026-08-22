@@ -1,4 +1,201 @@
 {
-  "Patients": [],
-  "AuditLog": []
+  "Patients": [
+    {
+      "patientId": "P001",
+      "fullName": "Patient 001",
+      "birthDate": "1984-03-12",
+      "nationalHealthId": "CNS-000000000000001",
+      "sourceUnit": "UBS Centro - FUMSSAR",
+      "referralId": "REF-2026-0001",
+      "hospitalId": "HOSP-SR-001",
+      "diagnosis": "Clinical condition requiring hospital assessment",
+      "allergies": "None reported",
+      "medications": "Medication information recorded at primary care",
+      "notes": "Patient referred from primary healthcare to the hospital.",
+      "recordStatus": "available",
+      "updatedAt": "2026-08-21 21:07:26"
+    }
+  ],
+  "AuditLog": [
+    {
+      "id": 1,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:24"
+    },
+    {
+      "id": 2,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:25"
+    },
+    {
+      "id": 3,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:25"
+    },
+    {
+      "id": 4,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:25"
+    },
+    {
+      "id": 5,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:25"
+    },
+    {
+      "id": 6,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:25"
+    },
+    {
+      "id": 7,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:25"
+    },
+    {
+      "id": 8,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:25"
+    },
+    {
+      "id": 9,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:25"
+    },
+    {
+      "id": 10,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:25"
+    },
+    {
+      "id": 11,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:25"
+    },
+    {
+      "id": 12,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:25"
+    },
+    {
+      "id": 13,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:25"
+    },
+    {
+      "id": 14,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:25"
+    },
+    {
+      "id": 15,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:25"
+    },
+    {
+      "id": 16,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:25"
+    },
+    {
+      "id": 17,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:26"
+    },
+    {
+      "id": 18,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:26"
+    },
+    {
+      "id": 19,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:26"
+    },
+    {
+      "id": 20,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:26"
+    },
+    {
+      "id": 21,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:26"
+    },
+    {
+      "id": 22,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:26"
+    },
+    {
+      "id": 23,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:26"
+    },
+    {
+      "id": 24,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:26"
+    },
+    {
+      "id": 25,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:26"
+    },
+    {
+      "id": 26,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:26"
+    },
+    {
+      "id": 27,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:26"
+    },
+    {
+      "id": 28,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:26"
+    },
+    {
+      "id": 29,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:26"
+    },
+    {
+      "id": 30,
+      "patientId": "P001",
+      "event": "Patient record updated from Health Registry Service",
+      "timestamp": "2026-08-21 21:07:26"
+    }
+  ]
 }

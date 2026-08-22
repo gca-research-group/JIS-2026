@@ -1,442 +1,287 @@
-# Reproducing the proof-of-concept on the ARM Morello Board
+# Healthcare Integration Proof of Concept on ARM Morello
 
-This repository contains two reproducible configurations of the same healthcare integration proof of concept.
+This repository contains two configurations of the same healthcare integration workflow:
 
-- **Trusted environment (`inside`)**: the Integration Process is executed through the Launcher inside a CHERI-based compartment on the ARM Morello Board.
-- **Conventional environment (`outside`)**: the same Integration Process is executed outside CHERI-based compartments and communicates directly with the Digital Services, providing the conventional baseline.
+1. The Hospital Service requests patient `P001` (or another `PATIENT_ID`).
+2. `Read_act` retrieves the patient record from the Health Registry Service.
+3. `Write_act` updates the Hospital Service.
+4. A second `Write_act` records a notification in the Messaging Service.
 
-The proof of concept implements an inter-organisational healthcare scenario involving primary healthcare services and a hospital managed by a different organisation. The workflow integrates three Digital Services:
+The trusted configuration executes the Integration Process with CHERI compartmentalisation enabled through `proccontrol`. The conventional configuration executes the same business workflow directly, without the Launcher and without the compartment execution command. In both configurations, the three Digital Services are conventional Python/Flask processes and are co-located on the Morello Board for the experiment.
 
-- **Health Registry Service**: maintains patient data recorded by primary healthcare units (UBSs).
-- **Hospital Service**: maintains the patient record used by the hospital.
-- **Messaging Service**: records the notification sent to hospital staff after the patient record has been updated.
+## Important implementation scope
 
-The business workflow receives a patient identifier as input (default: `P001`) and executes exactly one `Read_act` followed by two `Write_act` operations.
-
-This README explains how to execute both configurations, validate the 30-run experimental campaigns, and reproduce the statistical analysis.
-
----
-
-## What is executed in each environment
-
-### 1. Trusted environment (`inside-proof-of-concept`)
-
-The trusted configuration uses the Launcher as the mediator between the Integration Process and the three Digital Services.
-
-The Launcher:
-
-- retrieves the registered Integration Process source code;
-- compiles it with `clang-morello` using the Morello pure-capability ABI;
-- performs the prototype deployment and certificate-generation steps;
-- checks that the Digital Services belong to the `inside` environment;
-- propagates the `program_id`, `run_id`, and requested `patientId`;
-- executes the Integration Process with:
+The project measures the execution structure of the proof of concept. The certificate-verification and payload encryption/decryption functions are lightweight functional stubs that preserve the API-level control flow; they are not benchmarks of production cryptographic primitives. Likewise, `createCompartment()` and `deploy()` are prototype API operations. The protected execution of the Integration Process is activated by:
 
 ```text
 proccontrol -m cheric18n -s enable <executable>
 ```
 
-- mediates `read()` and `write()` operations between the Integration Process and the Digital Services.
+The service-environment check performed before each trusted execution is an experimental-control operation. Its latency is recorded as `validateServices_ms`, but it is deliberately outside the measured `Launcher.start()` interval.
 
-This configuration produces the metrics stored in:
+## Canonical path
 
-```text
-inside-proof-of-concept/metrics/all_metrics.csv
-```
-
-### 2. Conventional environment (`outside-proof-of-concept`)
-
-The conventional configuration executes the same business workflow without the Launcher and without CHERI compartmentalisation. The Integration Process communicates directly with the same three types of Digital Services.
-
-There is **no Launcher in the conventional configuration**. This configuration produces the baseline metrics stored in:
+The commands below assume that the project is installed at:
 
 ```text
-outside-proof-of-concept/metrics/all_metrics.csv
+/home/regis/JIS-2026-main/
 ```
 
----
+## Dependencies
 
-## Hardware and software requirements
+Required system tools include `python3`, `pip`, `clang-morello`, `openssl`, and `proccontrol`. Python packages are listed in `requirements.txt`.
 
-### Hardware
-
-- ARM Morello Board (Research Morello SoC r0p0)
-- 4 CPU cores
-- 16 GB RAM
-
-### Operating system
-
-- CheriBSD
-
-### Required tools
-
-- `python3`
-- `pip`
-- `clang-morello`
-- `openssl`
-- `proccontrol`
-
-### Python dependencies
-
-Install the required Python packages:
-
-```bash
-python3 -m pip install flask flask-talisman cryptography requests click pandas numpy scipy
+```sh
+cd /home/regis/JIS-2026-main
+python3 -m pip install -r requirements.txt
 ```
 
----
+Before collecting a campaign, record the execution environment:
 
-# Part A — Trusted environment (`inside-proof-of-concept`)
+```sh
+python3 evaluation/collect_system_info.py
+```
 
-The trusted and conventional services use the same local ports. Do not run both configurations simultaneously.
+## Preserved previous campaign
 
-Before starting the trusted environment, stop any Digital Services or Launcher left from a previous execution.
+The measurements that were bundled with the original project are preserved unchanged under:
 
-```bash
+```text
+reference-results/20260819-original-campaign/
+```
+
+The active `all_metrics.csv` files are reset in this adjusted package so a new campaign can be collected without mixing old and new samples.
+
+# A. Trusted configuration
+
+The trusted and conventional services use the same local ports. Do not run both configurations at the same time.
+
+## A1. Stop processes left from an earlier execution
+
+```sh
 pkill -f API1.py || true
 pkill -f API2.py || true
 pkill -f API3.py || true
 pkill -f launcher.py || true
 ```
 
-## Step A1 — Start the Digital Services
+## A2. Start the trusted Digital Services
 
-Open three SSH terminals on the Morello Board.
+Terminal 1:
 
-### Terminal 1 — Health Registry Service
-
-```bash
+```sh
 cd /home/regis/JIS-2026-main/inside-proof-of-concept/app-health-registry/api
 python3 API1.py
 ```
 
-Expected endpoints:
+Terminal 2:
 
-```text
-https://127.0.0.1:8100/api/request
-https://127.0.0.1:8100/api/health
-```
-
-### Terminal 2 — Hospital Service
-
-```bash
+```sh
 cd /home/regis/JIS-2026-main/inside-proof-of-concept/app-hospital/api
 python3 API2.py
 ```
 
-Expected endpoints:
+Terminal 3:
 
-```text
-https://127.0.0.1:8101/api/post
-https://127.0.0.1:8101/api/health
-```
-
-### Terminal 3 — Messaging Service
-
-```bash
+```sh
 cd /home/regis/JIS-2026-main/inside-proof-of-concept/app-messaging/api
 python3 API3.py
 ```
 
-Expected endpoints:
+Check the three endpoints:
 
-```text
-https://127.0.0.1:9100/api/post
-https://127.0.0.1:9100/api/health
-```
-
-## Step A2 — Verify the Digital Services
-
-Before starting the Launcher, verify that the three services identify themselves as belonging to the trusted configuration:
-
-```bash
+```sh
 curl -k https://127.0.0.1:8100/api/health
 curl -k https://127.0.0.1:8101/api/health
 curl -k https://127.0.0.1:9100/api/health
 ```
 
-The responses must identify:
+The responses must identify `health-registry-service`, `hospital-service`, and `messaging-service` with `environment: inside`.
 
-```text
-health-registry-service  -> environment: inside
-hospital-service         -> environment: inside
-messaging-service        -> environment: inside
-```
+## A3. Start the Launcher
 
-The Launcher also performs this verification before executing the Integration Process.
+Terminal 4:
 
-## Step A3 — Start the Launcher
-
-Open a fourth terminal:
-
-```bash
+```sh
 cd /home/regis/JIS-2026-main/inside-proof-of-concept/launcher
 python3 launcher.py
 ```
 
-Expected endpoint:
+## A4. Compile the Integration Process once, before the measured campaign
 
-```text
-https://127.0.0.1:5000
-```
+Terminal 5:
 
-## Step A4 — Start the CLI
-
-Open a fifth terminal:
-
-```bash
+```sh
 cd /home/regis/JIS-2026-main/inside-proof-of-concept/launcher
-python3 command-line-interface.py
+python3 command-line-interface.py compile 2
 ```
 
-The interactive menu provides:
+Compilation is intentionally performed before the repeated campaign. A measured trusted run is rejected if it contains `compile_ms` under its campaign `run_id`.
 
-```text
-1. List files
-2. Upload a file
-3. Delete a program
-4. Compile a program
-5. Execute a program
-6. Exit
+## A5. Reset the active trusted campaign after compilation
+
+```sh
+cd /home/regis/JIS-2026-main
+python3 evaluation/prepare_campaign.py trusted
 ```
 
-# Part B — Conventional environment (`outside-proof-of-concept`)
+This archives any active measurements, resets the trusted metrics CSV, and restores the Hospital and Messaging service data to the same initial state used by the conventional campaign. The compiled executable and its registration are preserved.
 
-Stop all processes from the trusted configuration before starting the conventional configuration:
+## A6. Run one validation execution
 
-```bash
+```sh
+cd /home/regis/JIS-2026-main/inside-proof-of-concept/launcher
+python3 command-line-interface.py execute 2 --patient-id P001
+```
+
+Validate it:
+
+```sh
+cd /home/regis/JIS-2026-main
+python3 evaluation/validate_metrics.py inside-proof-of-concept/metrics/all_metrics.csv --expected-runs 1
+```
+
+If it passes, reset the trusted campaign again before collecting the final 30 samples:
+
+```sh
+python3 evaluation/prepare_campaign.py trusted
+```
+
+## A7. Collect the final 30 trusted runs
+
+```sh
+cd /home/regis/JIS-2026-main/inside-proof-of-concept/launcher
+python3 command-line-interface.py campaign 2 --runs 30 --patient-id P001
+```
+
+Validate immediately:
+
+```sh
+cd /home/regis/JIS-2026-main
+python3 evaluation/validate_metrics.py inside-proof-of-concept/metrics/all_metrics.csv --expected-runs 30
+```
+
+A valid trusted run contains exactly one `Read_act`, one Hospital `Write_act`, one Messaging `Write_act`, one `Execution`, all operation-level metrics used by the analysis, one `Launcher.start()` interval, and one service-environment validation interval outside `Launcher.start()`. No measured run may contain `compile_ms` or `execute_failed_ms`.
+
+# B. Conventional configuration
+
+Stop the trusted processes before starting the conventional services:
+
+```sh
 pkill -f API1.py || true
 pkill -f API2.py || true
 pkill -f API3.py || true
 pkill -f launcher.py || true
 ```
 
-The conventional environment does **not** use the Launcher.
+## B1. Start the conventional Digital Services
 
-## Step B1 — Start the Digital Services
+Terminal 1:
 
-Open three SSH terminals.
-
-### Terminal 1 — Health Registry Service
-
-```bash
+```sh
 cd /home/regis/JIS-2026-main/outside-proof-of-concept/app-health-registry/api
 python3 API1.py
 ```
 
-Expected endpoints:
+Terminal 2:
 
-```text
-https://127.0.0.1:8100/api/request
-https://127.0.0.1:8100/api/health
-```
-
-### Terminal 2 — Hospital Service
-
-```bash
+```sh
 cd /home/regis/JIS-2026-main/outside-proof-of-concept/app-hospital/api
 python3 API2.py
 ```
 
-Expected endpoints:
+Terminal 3:
 
-```text
-https://127.0.0.1:8101/api/post
-https://127.0.0.1:8101/api/health
-```
-
-### Terminal 3 — Messaging Service
-
-```bash
+```sh
 cd /home/regis/JIS-2026-main/outside-proof-of-concept/app-messaging/api
 python3 API3.py
 ```
 
-Expected endpoints:
+Check:
 
-```text
-https://127.0.0.1:9100/api/post
-https://127.0.0.1:9100/api/health
-```
-
-## Step B2 — Verify the Digital Services
-
-```bash
+```sh
 curl -k https://127.0.0.1:8100/api/health
 curl -k https://127.0.0.1:8101/api/health
 curl -k https://127.0.0.1:9100/api/health
 ```
 
-The responses must identify:
+The responses must report `environment: outside`.
 
-```text
-health-registry-service  -> environment: outside
-hospital-service         -> environment: outside
-messaging-service        -> environment: outside
-```
+## B2. Compile the conventional Integration Process
 
-## Step B3 — Compile the Integration Process
+The conventional baseline preserves the compiler invocation used by the existing project: `clang-morello` without the purecap ABI override used by the trusted build.
 
-Open a fourth terminal:
-
-```bash
+```sh
 cd /home/regis/JIS-2026-main/outside-proof-of-concept/sources
 clang-morello -o integration_process integration_process.c -lssl -lcrypto
 ```
 
-The conventional executable is run directly, without `proccontrol -m cheric18n -s enable` and without the Launcher.
+## B3. Prepare and validate one conventional run
 
-## Step B4 — Execute 
+```sh
+cd /home/regis/JIS-2026-main
+python3 evaluation/prepare_campaign.py conventional
 
-```bash
-cd /home/regis/JIS-2026-main/outside-proof-of-concept/sources
+METRICS_FILE=/home/regis/JIS-2026-main/outside-proof-of-concept/metrics/all_metrics.csv \
+PROGRAM_ID=2 PATIENT_ID=P001 \
+/home/regis/JIS-2026-main/outside-proof-of-concept/sources/integration_process
 
-./integration_process
+python3 evaluation/validate_metrics.py outside-proof-of-concept/metrics/all_metrics.csv --expected-runs 1
 ```
 
-# Part C — Statistical analysis
+Reset again before the final campaign:
 
-The repository contains the analysis script used to compare the trusted and conventional configurations:
-
-```text
-evaluation/script.py
+```sh
+python3 evaluation/prepare_campaign.py conventional
 ```
 
-The campaign files are read directly from:
+## B4. Collect the final 30 conventional runs
 
-```text
-inside-proof-of-concept/metrics/all_metrics.csv
-outside-proof-of-concept/metrics/all_metrics.csv
+```sh
+cd /home/regis/JIS-2026-main
+python3 evaluation/run_outside_campaign.py --runs 30 --patient-id P001 --program-id 2
 ```
 
-## Step C1 — Run the analysis script
+Validate immediately:
 
-```bash
+```sh
+python3 evaluation/validate_metrics.py outside-proof-of-concept/metrics/all_metrics.csv --expected-runs 30
+```
+
+# C. Statistical analysis
+
+Only run the analysis after both validators report exactly 30 complete successful runs and zero incomplete/failed runs.
+
+```sh
 cd /home/regis/JIS-2026-main
 python3 evaluation/script.py
 ```
 
-The script produces:
-
-- console output; and
-- `evaluation/analysis_results.log`.
-
-## Step C2 — What the script computes
-
-### Cross-environment comparison
-
-The complete healthcare workflow is compared using:
-
-- `read_act_total_ms` for the **Health Registry Service**;
-- `write_act_total_ms` for the **Hospital Service**;
-- `write_act_total_ms` for the **Messaging Service**;
-- `execute_total_ms` for the complete Integration Process execution.
-
-For each cross-environment metric, the script computes:
-
-- number of valid samples;
-- mean and standard deviation;
-- relative overhead of the trusted configuration;
-- Shapiro–Wilk normality tests;
-- Mann–Whitney U test;
-- Holm-adjusted p-values;
-- Cliff's Delta;
-- IQR-based robustness analysis.
-
-### Trusted-environment internal analysis
-
-The script also reports selected costs measured within:
-
-- `Read_act`;
-- `Write_act` to the Hospital Service;
-- `Write_act` to the Messaging Service; and
-- `Launcher.start()`.
-
-Only complete and successful `run_id` values are included in the analysis.
-
----
-
-# Expected output files
-
-## Trusted environment
-
-```text
-inside-proof-of-concept/metrics/all_metrics.csv
-```
-
-## Conventional environment
-
-```text
-outside-proof-of-concept/metrics/all_metrics.csv
-```
-
-## Statistical analysis
+The analysis is written to:
 
 ```text
 evaluation/analysis_results.log
 ```
 
----
+The script reports:
 
-# Main metrics collected by the proof-of-concept
+- mean and sample standard deviation for `Read_act`, both `Write_act` actions, and `Execution`;
+- relative trusted-environment overhead;
+- Shapiro--Wilk tests;
+- two-sided Mann--Whitney U tests;
+- Holm-adjusted p-values over the four cross-environment comparisons;
+- Cliff's delta;
+- IQR-based sensitivity analysis;
+- operation-level trusted measurements for `Read_act` and both `Write_act` actions;
+- `DigitalService.request()` and `DigitalService.post()` service-side totals separately from the enclosing Launcher request/post intervals;
+- selected intervals within `Launcher.start()`;
+- the service-environment validation interval as an experimental control outside `Launcher.start()`.
 
-## Cross-environment metrics
-
-```text
-read_act_total_ms
-write_act_total_ms       # Hospital Service
-write_act_total_ms       # Messaging Service
-execute_total_ms
-```
-
-## Trusted `Read_act` metrics
-
-```text
-lookupService_ms
-getCertificate_ms
-getProgramPublicKey_ms
-request_ms
-launcher_read_total_ms
-verifyCertificate_ms
-retrieveLocalData_ms
-encrypt_ms
-decrypt_ms
-read_act_total_ms
-```
-
-## Trusted `Write_act` metrics
-
-For both the Hospital Service and Messaging Service:
+# D. Active output files
 
 ```text
-getServicePublicKey_ms
-encrypt_ms
-lookupService_ms
-getCertificate_ms
-post_ms
-launcher_write_total_ms
-verifyCertificate_ms
-decrypt_ms
-storeLocalData_ms
-post_total_ms
-write_act_total_ms
+inside-proof-of-concept/metrics/all_metrics.csv
+outside-proof-of-concept/metrics/all_metrics.csv
+evaluation/analysis_results.log
+evaluation/system_info.txt
 ```
-
-## `Launcher.start()` metrics
-
-```text
-retrieveProgram_ms
-compile_ms
-createCompartment_ms
-deploy_ms
-getIntegratedServices_ms
-validateServices_ms
-exchangeKeys_ms
-generateAttestableDoc_ms
-generateCertificate_ms
-sign_ms
-run_ms
-start_total_ms
-```
-
----

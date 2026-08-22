@@ -531,7 +531,7 @@ class Launcher:
                     f"'{status.get('environment')}', not 'inside'. Start the services "
                     "from inside-proof-of-concept before running the trusted experiment."
                 )
-        _metric('start', 'validateServices_ms', now_ms() - t0, run_id, str(program_id))
+        _metric('experimental_control', 'validateServices_ms', now_ms() - t0, run_id, str(program_id))
 
     def read(self, srv_id: str, program_id: int, run_id: str = '', patient_id: str = 'P001') -> dict:
         total_t0 = now_ms()
@@ -565,7 +565,6 @@ class Launcher:
             'serviceId': srv_id,
             'programId': program_id,
             'runId': run_id,
-            'patientId': patient_id,
             'environment': 'inside'
         })
         _metric('write', 'post_ms', now_ms() - t0, run_id, str(program_id), srv_id)
@@ -594,6 +593,16 @@ class Launcher:
             except (FileNotFoundError, OSError):
                 needs_compile = True
 
+        # The repeated experimental campaign uses a precompiled executable so
+        # compilation does not contaminate Launcher.start() or the 30 measured
+        # runs. Compilation is allowed inside start() only when explicitly
+        # requested through force_compile=True.
+        if needs_compile and not force_compile:
+            raise RuntimeError(
+                'The Integration Process must be compiled before a measured execution. '
+                'Run `python3 command-line-interface.py compile %d` first.' % program_id
+            )
+
         if needs_compile:
             compile_result = self.compile(program_id, run_id)
             executable_path = compile_result['executable_path']
@@ -605,7 +614,6 @@ class Launcher:
         self.createCompartment(program_id, run_id)
         self.deploy(program_id, executable_path, run_id)
         services = self.getIntegratedServices(program_id, run_id)
-        self.validateServices(program_id, run_id)
         self.exchangeKeys(program_id, services, run_id)
         self.generateAttestableDoc(program_id, executable_path, run_id)
         self.generateCertificate(program_id, executable_path, cert_dir, run_id)
@@ -680,6 +688,27 @@ if app:
     def list_files():
         return jsonify([{'id': file_id, **file_info} for file_id, file_info in file_db.items()]), 200
 
+    @app.route('/files/<int:program_id>', methods=['DELETE'])
+    def delete_program(program_id):
+        if program_id not in file_db:
+            return jsonify({'error': 'Program not found'}), 404
+
+        info = file_db.pop(program_id)
+        # Remove generated executables and certificate directories, but keep
+        # uploaded source code unless it is outside the canonical source folder.
+        for exe in info.get('executables', []):
+            try:
+                Path(exe).unlink(missing_ok=True)
+            except Exception:
+                pass
+        for cert_dir in info.get('certificates', []):
+            try:
+                shutil.rmtree(cert_dir, ignore_errors=True)
+            except Exception:
+                pass
+        save_file_database()
+        return jsonify({'message': 'Program deleted'}), 200
+
     @app.route('/compile/<int:program_id>', methods=['POST'])
     def compile_program(program_id):
         payload = request.get_json(silent=True) or {}
@@ -692,9 +721,15 @@ if app:
     @app.route('/execute/<int:program_id>', methods=['POST'])
     def execute_program(program_id):
         payload = request.get_json(silent=True) or {}
-        run_id = payload.get('runId', '')
+        run_id = str(payload.get('runId', '')).strip()
+        if not run_id:
+            run_id = f"inside-{program_id}-{uuid.uuid4().hex}"
         try:
             patient_id = str(payload.get('patientId', 'P001')).strip() or 'P001'
+            # This health/configuration check is an experimental control. It is
+            # intentionally executed before Launcher.start() so its latency is
+            # not included in the API operation's measured total.
+            launcher.validateServices(program_id, run_id)
             result = launcher.start(program_id, force_compile=payload.get('forceCompile', False), run_id=run_id, patient_id=patient_id)
             if result.get('returncode') != 0:
                 return jsonify({
