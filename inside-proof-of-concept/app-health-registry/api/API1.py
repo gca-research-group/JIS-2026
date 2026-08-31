@@ -6,6 +6,8 @@ import sys
 import threading
 import time
 from pathlib import Path
+import time
+from contextlib import contextmanager
 
 try:
     from flask import Flask, jsonify, request
@@ -59,6 +61,28 @@ def metric(name: str, value_ms: float, run_id: str = '', program_id: str = '') -
         metrics_file=METRICS_FILE,
     )
 
+class MetricsCollector:
+    def __init__(self, run_id: str = '', program_id: str = ''):
+        self.run_id = run_id
+        self.program_id = program_id
+        self.timings: dict[str, float] = {}
+        self.total_t0 = now_ms()
+
+    @contextmanager
+    def time_block(self, name: str):
+        t0 = now_ms()
+        try:
+            yield
+        finally:
+            self.timings[name] = now_ms() - t0
+
+    def flush(self, total_metric_name: str) -> None:
+
+        total_ms = now_ms() - self.total_t0
+        for metric_name, val in self.timings.items():
+            metric(metric_name, val, self.run_id, self.program_id)
+        metric(total_metric_name, total_ms, self.run_id, self.program_id)
+
 
 def _default_registry_data() -> dict:
     return {'Patients': [], 'AuditLog': []}
@@ -88,32 +112,35 @@ def request_action(payload: dict) -> tuple[dict, int]:
     if payload.get('environment') != ENVIRONMENT:
         return {'error': f"Environment mismatch: service is {ENVIRONMENT!r}."}, 409
 
-    total_t0 = now_ms()
-    run_id = str(payload.get('runId', ''))
-    program_id = str(payload.get('programId', ''))
-
-    t0 = now_ms()
-    ok, message = verifyCertificate(payload.get('signedCert', ''))
-    metric('verifyCertificate_ms', now_ms() - t0, run_id, program_id)
-    if not ok:
-        return {'error': message}, 403
+    collector = MetricsCollector(
+        run_id=str(payload.get('runId', '')),
+        program_id=str(payload.get('programId', ''))
+    )
 
     patient_id = str(payload.get('patientId', '')).strip()
+
     if not patient_id:
+        collector.flush('request_total_ms')
         return {'error': 'patientId is required.'}, 400
 
-    t0 = now_ms()
+    with collector.time_block('verifyCertificate_ms'):
+        ok, message = verifyCertificate(payload.get('signedCert', ''))
+
+        if not ok:
+            collector.flush('request_total_ms')
+            return {'error': message}, 403
+
     try:
-        data = retrieveLocalData(patient_id)
+        with collector.time_block('retrieveLocalData_ms'):
+            data = retrieveLocalData(patient_id)
     except RuntimeError as exc:
+        collector.flush('request_total_ms')
         return {'error': str(exc)}, 404
-    metric('retrieveLocalData_ms', now_ms() - t0, run_id, program_id)
 
-    t0 = now_ms()
-    data_enc = encrypt(payload.get('puK', ''), data)
-    metric('encrypt_ms', now_ms() - t0, run_id, program_id)
+    with collector.time_block('encrypt_ms'):
+        data_enc = encrypt(payload.get('puK', ''), data)
 
-    metric('request_total_ms', now_ms() - total_t0, run_id, program_id)
+    collector.flush('request_total_ms')
     return {'dataEnc': data_enc, 'status': 'ok'}, 200
 
 
