@@ -1,13 +1,13 @@
-"""Run with python -m health_registry from the API directory."""
+"""Run with python main.py from the service directory."""
 
 from __future__ import annotations
 
 import logging
 
-from . import create_app
-from .config import BASE_DIR
-
 from flask import Flask
+
+from app import create_app
+from config import BASE_DIR
 
 
 def main(app: Flask | None = None) -> None:

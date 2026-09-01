@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from ._shared import decrypt_dataset, encrypt_dataset
-from ._shared import verify_certificate as shared_verify_certificate
+from _shared import decrypt_dataset, encrypt_dataset
+from _shared import verify_certificate as shared_verify_certificate
 
 
 def verify_certificate(cert: str) -> tuple[bool, str]:

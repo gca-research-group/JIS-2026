@@ -2,8 +2,8 @@
 
 from flask import Blueprint, Response, current_app, jsonify, request
 
-from .config import ENVIRONMENT, SERVICE_ID
-from .service import load_registry_data, request_action
+from config import ENVIRONMENT, SERVICE_ID
+from service import load_registry_data, request_action
 
 routes = Blueprint("health_registry", __name__)
 

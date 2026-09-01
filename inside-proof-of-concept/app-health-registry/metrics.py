@@ -6,8 +6,8 @@ import time
 from contextlib import contextmanager
 from typing import Callable, Generator
 
-from ._shared import append_metric
-from .config import SERVICE_ID
+from _shared import append_metric
+from config import SERVICE_ID
 
 
 def now_ms() -> float:

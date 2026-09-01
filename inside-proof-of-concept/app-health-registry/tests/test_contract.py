@@ -4,7 +4,8 @@ import csv
 import json
 
 import pytest
-from health_registry.service import load_registry_data, retrieve_local_data
+
+from service import load_registry_data, retrieve_local_data
 
 PATIENT = {"patientId": "P001", "name": "João"}
 PAYLOAD = {
@@ -20,7 +21,7 @@ SUCCESS_METRICS = ["verifyCertificate_ms", "retrieveLocalData_ms", "encrypt_ms",
 
 @pytest.fixture
 def service(tmp_path):
-    from health_registry import create_app
+    from app import create_app
 
     path = tmp_path / "registry.json"
     path.write_text(json.dumps({"Patients": [PATIENT], "AuditLog": []}), encoding="utf-8")
@@ -128,7 +129,7 @@ def test_invalid_body(service, body, status):
     "cert,ok", [("cert", True), ("", False), ("  ", False), (None, False), (123, False)]
 )
 def test_security(cert, ok):
-    from health_registry.security import decrypt, encrypt, verify_certificate
+    from security import decrypt, encrypt, verify_certificate
 
     assert verify_certificate(cert) == (
         ok,

@@ -4,8 +4,10 @@ import json
 import os
 
 import pytest
-from health_registry import config, create_app
-from test_startup import API, run
+from test_startup import SERVICE_ROOT, run
+
+import config
+from app import create_app
 
 
 @pytest.fixture
@@ -22,7 +24,7 @@ def local_env(tmp_path, monkeypatch):
 def test_absent_file(local_env):
     settings = config.default_config()
     assert settings["PORT"] == 8100
-    assert settings["METRICS_FILE"] == str(API.parent.parent / "metrics" / "all_metrics.csv")
+    assert settings["METRICS_FILE"] == str(SERVICE_ROOT.parent / "metrics" / "all_metrics.csv")
 
 
 def test_file_values(local_env):
@@ -69,9 +71,9 @@ def test_entry_points_ignore_unrelated_files(tmp_path, entry, has_file):
     code = f"""
 import json, os, runpy, sys
 from pathlib import Path
-sys.path.insert(0, {str(API)!r})
+sys.path.insert(0, {str(SERVICE_ROOT)!r})
 os.environ.pop('UNRELATED_DOTENV', None)
-from health_registry import config
+import config
 config.BASE_DIR = Path({str(service_root)!r})
 def report(app):
     print(json.dumps([app.config['PORT'], app.config['METRICS_FILE'],
@@ -79,17 +81,17 @@ def report(app):
 import werkzeug.serving
 werkzeug.serving.run_simple = lambda host, port, app, **kwargs: report(app)
 if {entry!r} == 'factory':
-    from health_registry import create_app
+    from app import create_app
     report(create_app())
 else:
-    runpy.run_module('health_registry', run_name='__main__')
+    runpy.run_path({str(SERVICE_ROOT / "main.py")!r}, run_name='__main__')
 """
     output = run(code, cwd=working, PYTHON_DOTENV_DISABLED="0", FLASK_RUN_FROM_CLI="false")
     # Flask may print a startup banner before the intercepted server invocation.
     settings = json.loads(output.splitlines()[-1])
     assert settings == [
         8500 if has_file else 8100,
-        "local.csv" if has_file else str(API.parent.parent / "metrics" / "all_metrics.csv"),
+        "local.csv" if has_file else str(SERVICE_ROOT.parent / "metrics" / "all_metrics.csv"),
         None,
     ]
 
@@ -102,7 +104,7 @@ import dotenv
 def unexpected_load(*args, **kwargs):
     raise AssertionError('dotenv loaded at import time')
 dotenv.load_dotenv = unexpected_load
-import health_registry.config, health_registry.service, health_registry.app
+import config, service, app
 print('imports only')
 """,
             PYTHON_DOTENV_DISABLED="0",

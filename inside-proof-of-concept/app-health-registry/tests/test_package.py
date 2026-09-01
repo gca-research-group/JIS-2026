@@ -4,10 +4,11 @@ import json
 from pathlib import Path
 from threading import RLock
 
-from health_registry import create_app
-from health_registry.config import BASE_DIR, default_config
-from health_registry.service import request_action
-from test_startup import API, run
+from test_startup import SERVICE_ROOT, run
+
+from app import create_app
+from config import BASE_DIR, default_config
+from service import request_action
 
 
 def test_factory_isolation(tmp_path):
@@ -25,7 +26,7 @@ def test_factory_isolation(tmp_path):
         assert response.status_code == 200
         assert json.loads(response.json["dataEnc"]) == {"patientId": str(index)}
         assert len((tmp_path / f"{index}.csv").read_text().splitlines()) == 5
-    from health_registry.routes import routes
+    from routes import routes
 
     for index in (0, 1, 0, 1):
         app = apps[index]
@@ -53,7 +54,7 @@ def test_config_defaults(monkeypatch):
     monkeypatch.delenv("HEALTH_REGISTRY_SERVICE_PORT", raising=False)
     settings = default_config()
     assert settings["PORT"] == 8100
-    assert settings["DATA_PATH"] == BASE_DIR / "data_access" / "health_registry.json"
+    assert settings["DATA_PATH"] == BASE_DIR / "data" / "health_registry.json"
     assert Path(settings["METRICS_FILE"]) == BASE_DIR.parent / "metrics" / "all_metrics.csv"
 
 
@@ -64,7 +65,7 @@ def test_module_startup():
 import json, runpy
 from flask import Flask
 Flask.run = lambda self, **kwargs: print(json.dumps(kwargs))
-runpy.run_module('health_registry', run_name='__main__')
+runpy.run_path('main.py', run_name='__main__')
 """,
             HEALTH_REGISTRY_SERVICE_PORT="8300",
         )
@@ -73,8 +74,8 @@ runpy.run_module('health_registry', run_name='__main__')
         "host": "127.0.0.1",
         "port": 8300,
         "ssl_context": [
-            str(API.parent / "keys" / "cert.pem"),
-            str(API.parent / "keys" / "priv.pem"),
+            str(SERVICE_ROOT / "keys" / "cert.pem"),
+            str(SERVICE_ROOT / "keys" / "priv.pem"),
         ],
         "debug": False,
         "use_reloader": False,
@@ -88,8 +89,8 @@ import logging, sys
 logging.basicConfig = lambda *a, **kw: (_ for _ in ()).throw(AssertionError('logging configured'))
 from flask import Flask
 Flask.run = lambda *a, **kw: (_ for _ in ()).throw(AssertionError('server started'))
-import health_registry, health_registry.app
-from health_registry._shared import verify_certificate
+import app, main
+from _shared import verify_certificate
 print(sys.modules[verify_certificate.__module__].__file__)
 """) == str(BASE_DIR.parent / "common" / "security.py")
 
@@ -100,7 +101,7 @@ def test_pure_service_without_flask():
 import sys
 sys.modules['flask'] = None
 from threading import RLock
-from health_registry.service import request_action
+from service import request_action
 print(request_action({}, 'unused', 'unused', RLock())[1])
 """)
         == "409"

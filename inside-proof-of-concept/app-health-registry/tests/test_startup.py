@@ -8,10 +8,42 @@ from pathlib import Path
 
 import pytest
 
-API = Path(__file__).resolve().parents[1] / "api"
+SERVICE_ROOT = Path(__file__).resolve().parents[1]
 
 
-def run(code, cwd=API, **overrides):
+@pytest.mark.parametrize("absolute", [False, True])
+def test_script_invocation_without_import_path_setup(tmp_path, absolute):
+    """Let Python resolve the script's imports, intercepting only the server call."""
+    bootstrap = tmp_path / "bootstrap"
+    bootstrap.mkdir()
+    (bootstrap / "sitecustomize.py").write_text(
+        "import json\nfrom flask import Flask\n"
+        "Flask.run = lambda self, **kwargs: print(json.dumps(kwargs))\n",
+        encoding="utf-8",
+    )
+    environment = dict(os.environ)
+    environment.pop("HEALTH_REGISTRY_SERVICE_PORT", None)
+    environment["PYTHONPATH"] = str(bootstrap)
+    environment["PYTHONDONTWRITEBYTECODE"] = "1"
+    script = str(SERVICE_ROOT / "main.py") if absolute else "main.py"
+    result = subprocess.run(
+        [sys.executable, script],
+        cwd=tmp_path if absolute else SERVICE_ROOT,
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    settings = json.loads(result.stdout)
+    assert settings["port"] == 8100
+    assert settings["ssl_context"] == [
+        str(SERVICE_ROOT / "keys" / "cert.pem"),
+        str(SERVICE_ROOT / "keys" / "priv.pem"),
+    ]
+    assert settings["load_dotenv"] is False
+
+
+def run(code, cwd=SERVICE_ROOT, **overrides):
     environment = {
         key: value
         for key, value in os.environ.items()
@@ -34,9 +66,9 @@ def test_module_startup_settings(port, tmp_path):
     code = f"""
 import json, runpy, sys
 from flask import Flask
-sys.path.insert(0, {str(API)!r})
+sys.path.insert(0, {str(SERVICE_ROOT)!r})
 Flask.run = lambda self, **kwargs: print(json.dumps(kwargs))
-runpy.run_module('health_registry', run_name='__main__')
+runpy.run_path({str(SERVICE_ROOT / "main.py")!r}, run_name='__main__')
 """
     settings = json.loads(
         run(code, cwd=tmp_path, **({"HEALTH_REGISTRY_SERVICE_PORT": port} if port else {}))
@@ -45,8 +77,8 @@ runpy.run_module('health_registry', run_name='__main__')
         "host": "127.0.0.1",
         "port": int(port or 8100),
         "ssl_context": [
-            str(API.parent / "keys" / "cert.pem"),
-            str(API.parent / "keys" / "priv.pem"),
+            str(SERVICE_ROOT / "keys" / "cert.pem"),
+            str(SERVICE_ROOT / "keys" / "priv.pem"),
         ],
         "debug": False,
         "use_reloader": False,
@@ -59,8 +91,8 @@ runpy.run_module('health_registry', run_name='__main__')
 @pytest.mark.parametrize(
     "entry",
     [
-        "from health_registry import create_app; create_app()",
-        "runpy.run_module('health_registry', run_name='__main__')",
+        "from app import create_app; create_app()",
+        "runpy.run_path('main.py', run_name='__main__')",
     ],
 )
 def test_required_dependency(dependency, failure, entry):
@@ -94,7 +126,7 @@ def test_metrics_override(tmp_path):
     destination = str(tmp_path / "override.csv")
     assert (
         run(
-            "from health_registry import create_app; print(create_app().config['METRICS_FILE'])",
+            "from app import create_app; print(create_app().config['METRICS_FILE'])",
             METRICS_FILE=destination,
         )
         == destination

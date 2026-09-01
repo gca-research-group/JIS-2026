@@ -7,9 +7,9 @@ from functools import partial
 from pathlib import Path
 from typing import Any, ContextManager
 
-from .config import ENVIRONMENT
-from .metrics import MetricsCollector, emit_metric
-from .security import encrypt, verify_certificate
+from config import ENVIRONMENT
+from metrics import MetricsCollector, emit_metric
+from security import encrypt, verify_certificate
 
 
 def default_registry_data() -> dict[str, Any]:

@@ -8,8 +8,8 @@ from typing import Any
 from flask import Flask
 from flask_talisman import Talisman
 
-from .config import default_config
-from .routes import routes
+from config import default_config
+from routes import routes
 
 
 def create_app(config: dict[str, Any] | None = None) -> Flask:
