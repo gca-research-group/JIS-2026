@@ -231,6 +231,16 @@ static char *extract_json_string(const char *data, const char *key) {
 #define LAUNCHER_HOST "127.0.0.1"
 #define LAUNCHER_PORT "5000"
 
+static const char *read_launcher_host(void) {
+    const char *host = getenv("LAUNCHER_READ_HOST");
+    return (host && *host) ? host : "127.0.0.1";
+}
+
+static const char *read_launcher_port(void) {
+    const char *port = getenv("LAUNCHER_READ_PORT");
+    return (port && *port) ? port : "5001";
+}
+
 static char *read_action(const char *srv_id, const char *patient_id) {
     double t0 = now_ms();
     char endpoint[256];
@@ -238,7 +248,7 @@ static char *read_action(const char *srv_id, const char *patient_id) {
     snprintf(endpoint, sizeof(endpoint), "/api/read/%s/%s", srv_id, program_id);
     snprintf(payload, sizeof(payload), "{\"runId\":\"%s\",\"patientId\":\"%s\"}", current_run_id, patient_id);
 
-    char *response = http_post_json(LAUNCHER_HOST, LAUNCHER_PORT, endpoint, payload);
+    char *response = http_post_json(read_launcher_host(), read_launcher_port(), endpoint, payload);
     int status = http_status_code(response);
     if (!response || status < 200 || status >= 300) {
         fprintf(stderr, "Read_act failed for %s (HTTP %d)\n", srv_id, status);

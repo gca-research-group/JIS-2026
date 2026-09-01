@@ -533,26 +533,6 @@ class Launcher:
                 )
         _metric('experimental_control', 'validateServices_ms', now_ms() - t0, run_id, str(program_id))
 
-    def read(self, srv_id: str, program_id: int, run_id: str = '', patient_id: str = 'P001') -> dict:
-        total_t0 = now_ms()
-        service_url = self.lookupService(srv_id, run_id, str(program_id), operation='read')
-        signed_cert = self.getCertificate(program_id, run_id, operation='read', service_id=srv_id)
-        program_public_key = self.getProgramPublicKey(program_id, run_id, operation='read', service_id=srv_id)
-
-        t0 = now_ms()
-        response = self._post_json(service_url, {
-            'signedCert': signed_cert,
-            'puK': program_public_key,
-            'serviceId': srv_id,
-            'programId': program_id,
-            'runId': run_id,
-            'patientId': patient_id,
-            'environment': 'inside'
-        })
-        _metric('read', 'request_ms', now_ms() - t0, run_id, str(program_id), srv_id)
-        _metric('read', 'launcher_read_total_ms', now_ms() - total_t0, run_id, str(program_id), srv_id)
-        return response
-
     def write(self, srv_id: str, program_id: int, data_enc: str, run_id: str = '') -> dict:
         total_t0 = now_ms()
         service_url = self.lookupService(srv_id, run_id, str(program_id), operation='write')
@@ -625,6 +605,8 @@ class Launcher:
         env['PROGRAM_ID'] = str(program_id)
         env['RUN_ID'] = run_id
         env['LAUNCHER_URL'] = 'https://127.0.0.1:5000'
+        env['LAUNCHER_READ_HOST'] = os.environ.get('LAUNCHER_READ_HOST', '127.0.0.1')
+        env['LAUNCHER_READ_PORT'] = os.environ.get('LAUNCHER_READ_PORT', '5001')
         env['MAX_LOOPS'] = '1'
         env['METRICS_FILE'] = METRICS_FILE
         env['PATIENT_ID'] = patient_id
@@ -737,16 +719,6 @@ if app:
                     **result
                 }), 500
             return jsonify({'message': 'Execution finished', **result}), 200
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-
-    @app.route('/api/read/<srv_id>/<int:program_id>', methods=['POST'])
-    def api_read(srv_id, program_id):
-        payload = request.get_json(force=True, silent=True) or {}
-        run_id = payload.get('runId', '')
-        try:
-            patient_id = str(payload.get('patientId', 'P001')).strip() or 'P001'
-            return jsonify(launcher.read(srv_id, program_id, run_id, patient_id)), 200
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 
