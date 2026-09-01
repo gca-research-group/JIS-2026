@@ -22,7 +22,6 @@ def test_api_read_forwards_explicit_values(tmp_path, monkeypatch):
         lambda *args, **kwargs: calls.append((args, kwargs)) or {"dataEnc": "patient"},
     )
     app = create_app(
-        database_path=tmp_path / "missing.json",
         config={"METRICS_FILE": "configured.csv"},
     )
 
@@ -60,7 +59,7 @@ def test_api_read_defaults_missing_or_unusable_payload(
         "read",
         lambda *args, **kwargs: calls.append((args, kwargs)) or {},
     )
-    app = create_app(database_path=tmp_path / "missing.json")
+    app = create_app()
 
     response = app.test_client().post(
         "/api/read/health-registry-service/2", **request_kwargs
@@ -75,7 +74,7 @@ def test_api_read_translates_exception_to_json_500(tmp_path, monkeypatch):
         raise RuntimeError("read failed")
 
     monkeypatch.setattr(app_module, "read", fail)
-    app = create_app(database_path=tmp_path / "missing.json")
+    app = create_app()
     response = app.test_client().post("/api/read/health-registry-service/2", json={})
 
     assert response.status_code == 500
@@ -83,7 +82,7 @@ def test_api_read_translates_exception_to_json_500(tmp_path, monkeypatch):
 
 
 def test_launcher_v2_is_sole_owner_after_legacy_removal(tmp_path):
-    app = create_app(database_path=tmp_path / "missing.json")
+    app = create_app()
     routes = {
         (rule.rule, tuple(sorted(rule.methods - {"HEAD", "OPTIONS"})))
         for rule in app.url_map.iter_rules()
@@ -91,11 +90,12 @@ def test_launcher_v2_is_sole_owner_after_legacy_removal(tmp_path):
     assert ("/api/read/<srv_id>/<int:program_id>", ("POST",)) in routes
 
 
-def test_create_app_loads_fixture_database(tmp_path):
+def test_create_app_loads_fixture_database(tmp_path, monkeypatch):
     database = tmp_path / "file_database.json"
     database.write_text(json.dumps({"4": {"certificates": []}}), encoding="utf-8")
 
-    create_app(database_path=database)
+    monkeypatch.setattr(read_module, "FILE_DATABASE", database)
+    create_app()
 
     assert 4 in read_module.file_db
 
@@ -135,7 +135,7 @@ def test_read_smoke_success_metrics_and_http_500(tmp_path, monkeypatch):
         lambda url, payload: posted.append((url, payload)) or {"dataEnc": "patient"},
     )
     monkeypatch.setattr(read_module, "emit_metric", lambda *args: metrics.append(args))
-    app = create_app(database_path=tmp_path / "missing.json")
+    app = create_app()
 
     success = app.test_client().post(
         "/api/read/health-registry-service/2",
@@ -158,7 +158,7 @@ def test_read_smoke_success_metrics_and_http_500(tmp_path, monkeypatch):
             RuntimeError("smoke downstream failure")
         ),
     )
-    failing_app = create_app(database_path=tmp_path / "missing.json")
+    failing_app = create_app()
     failure = failing_app.test_client().post(
         "/api/read/health-registry-service/2", json={}
     )
@@ -181,11 +181,9 @@ def test_application_factories_isolate_metrics_destinations(tmp_path, monkeypatc
         read_module, "post_json", lambda _url, _payload: {"dataEnc": "patient"}
     )
     first = create_app(
-        database_path=tmp_path / "missing.json",
         config={"METRICS_FILE": str(first_metrics)},
     )
     second = create_app(
-        database_path=tmp_path / "missing.json",
         config={"METRICS_FILE": str(second_metrics)},
     )
 

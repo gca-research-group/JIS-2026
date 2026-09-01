@@ -21,7 +21,7 @@ def test_launcher_package_contains_no_flask_or_class_declarations():
     assert "class Service" not in source
 
 
-def test_load_file_database_exposes_fixture_metadata(tmp_path):
+def test_load_file_database_exposes_fixture_metadata(tmp_path, monkeypatch):
     cert_dir = tmp_path / "certificates" / "program"
     cert_dir.mkdir(parents=True)
     database = tmp_path / "programs-data-base" / "file_database.json"
@@ -30,7 +30,8 @@ def test_load_file_database_exposes_fixture_metadata(tmp_path):
         json.dumps({"7": {"certificates": [str(cert_dir)]}}), encoding="utf-8"
     )
 
-    loaded = read_module.load_file_database(database)
+    monkeypatch.setattr(read_module, "FILE_DATABASE", database)
+    loaded = read_module.load_file_database()
 
     assert loaded[7]["certificates"] == [str(cert_dir)]
 
@@ -47,7 +48,8 @@ def test_load_file_database_repairs_stale_certificate_path(tmp_path, monkeypatch
     )
     monkeypatch.setattr(read_module, "CERTIFICATE_FOLDER", cert_root)
 
-    loaded = read_module.load_file_database(database)
+    monkeypatch.setattr(read_module, "FILE_DATABASE", database)
+    loaded = read_module.load_file_database()
 
     assert loaded[7]["certificates"] == [str(local_cert.resolve())]
 

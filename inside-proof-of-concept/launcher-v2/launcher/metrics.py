@@ -1,4 +1,4 @@
-"""Per-read timing with the existing experiment's CSV contract."""
+"""Per-operation timing with the existing experiment's CSV contract."""
 
 from __future__ import annotations
 

@@ -37,7 +37,7 @@ file_db: dict[int, dict] = {}
 
 
 def load_file_database() -> dict[int, dict]:
-    """Load the persisted launcher program metadata used by read operations."""
+    """Load the persisted launcher program metadata used by read and write."""
     global file_db
     path = FILE_DATABASE
     if not path.exists():

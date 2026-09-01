@@ -6,6 +6,7 @@ from typing import Any
 from flask import Flask, jsonify, request
 
 from launcher.read import load_file_database, read
+from launcher.write import write
 from launcher.metrics import default_launcher_metrics_file
 
 
@@ -33,6 +34,22 @@ def create_app(
                     program_id,
                     run_id,
                     patient_id,
+                    metrics_file=app.config["METRICS_FILE"],
+                )
+            ), 200
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.post("/api/write/<srv_id>/<int:program_id>")
+    def api_write(srv_id: str, program_id: int):
+        payload = request.get_json(force=True, silent=True) or {}
+        try:
+            return jsonify(
+                write(
+                    srv_id,
+                    program_id,
+                    payload.get("dataEnc", ""),
+                    payload.get("runId", ""),
                     metrics_file=app.config["METRICS_FILE"],
                 )
             ), 200

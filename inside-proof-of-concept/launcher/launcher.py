@@ -533,24 +533,6 @@ class Launcher:
                 )
         _metric('experimental_control', 'validateServices_ms', now_ms() - t0, run_id, str(program_id))
 
-    def write(self, srv_id: str, program_id: int, data_enc: str, run_id: str = '') -> dict:
-        total_t0 = now_ms()
-        service_url = self.lookupService(srv_id, run_id, str(program_id), operation='write')
-        signed_cert = self.getCertificate(program_id, run_id, operation='write', service_id=srv_id)
-
-        t0 = now_ms()
-        response = self._post_json(service_url, {
-            'signedCert': signed_cert,
-            'dataEnc': data_enc,
-            'serviceId': srv_id,
-            'programId': program_id,
-            'runId': run_id,
-            'environment': 'inside'
-        })
-        _metric('write', 'post_ms', now_ms() - t0, run_id, str(program_id), srv_id)
-        _metric('write', 'launcher_write_total_ms', now_ms() - total_t0, run_id, str(program_id), srv_id)
-        return response
-
     def start(self, program_id: int, force_compile: bool = False, run_id: str = '', patient_id: str = 'P001') -> dict:
         # A run identifier is created once by the Launcher and propagated to
         # the integration process and every digital service involved in it.
@@ -605,8 +587,8 @@ class Launcher:
         env['PROGRAM_ID'] = str(program_id)
         env['RUN_ID'] = run_id
         env['LAUNCHER_URL'] = 'https://127.0.0.1:5000'
-        env['LAUNCHER_READ_HOST'] = os.environ.get('LAUNCHER_READ_HOST', '127.0.0.1')
-        env['LAUNCHER_READ_PORT'] = os.environ.get('LAUNCHER_READ_PORT', '5001')
+        env['LAUNCHER_HOST'] = os.environ.get('LAUNCHER_HOST', '127.0.0.1')
+        env['LAUNCHER_PORT'] = os.environ.get('LAUNCHER_PORT', '5001')
         env['MAX_LOOPS'] = '1'
         env['METRICS_FILE'] = METRICS_FILE
         env['PATIENT_ID'] = patient_id
@@ -722,18 +704,6 @@ if app:
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 
-    @app.route('/api/write/<srv_id>/<int:program_id>', methods=['POST'])
-    def api_write(srv_id, program_id):
-        payload = request.get_json(force=True, silent=True) or {}
-        try:
-            return jsonify(launcher.write(
-                srv_id,
-                program_id,
-                payload.get('dataEnc', ''),
-                payload.get('runId', '')
-            )), 200
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
