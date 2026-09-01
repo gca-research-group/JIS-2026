@@ -1,14 +1,12 @@
-from pathlib import Path
-import sys
-ROOT = Path(__file__).resolve().parents[2]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+"""Adapters for the existing simulated security helpers."""
 
-from common.security import verify_certificate, encrypt_dataset, decrypt_dataset
+from __future__ import annotations
+
+from _shared import decrypt_dataset, encrypt_dataset, shared_verify_certificate
 
 
-def verifyCertificate(cert: str):
-    ok = verify_certificate(cert)
+def verify_certificate(cert: str) -> tuple[bool, str]:
+    ok = shared_verify_certificate(cert)
     return ok, ("Simulated certificate accepted" if ok else "Missing simulated certificate")
 
 
